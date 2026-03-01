@@ -464,10 +464,10 @@ export const GoalListScreen = observer(() => {
             )}
 
             <TouchableOpacity
-              style={[styles.cancelButton, { marginTop: 16 }]}
+              style={styles.closeButton}
               onPress={() => setHistoryModalVisible(false)}
             >
-              <Text style={styles.cancelText}>Fechar</Text>
+              <Text style={styles.closeButtonText}>Fechar</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -596,6 +596,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   cancelText: { color: '#666' },
+  closeButton: {
+    marginTop: 16,
+    padding: 14,
+    borderRadius: 8,
+    backgroundColor: '#e0e0e0',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  closeButtonText: { color: '#333', fontSize: 16, fontWeight: '500' },
   saveButton: {
     flex: 1,
     padding: 14,
