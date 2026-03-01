@@ -8,6 +8,7 @@ import { CategoryModule } from './category/category.module';
 import { GoalModule } from './goal/goal.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { CacheConfigModule } from './cache/cache.module';
+import { HealthModule } from './health/health.module';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { CacheConfigModule } from './cache/cache.module';
       synchronize: true, 
     }),
     CacheConfigModule,
+    HealthModule,
     UserModule,
     AuthModule,
     TransactionModule,

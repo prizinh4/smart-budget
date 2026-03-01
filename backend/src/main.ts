@@ -9,8 +9,10 @@ async function bootstrap() {
   // Global validation pipe
   app.useGlobalPipes(new ValidationPipe({ transform: true, whitelist: true }));
 
-  // API versioning prefix
-  app.setGlobalPrefix('api/v1');
+  // API versioning prefix (exclude health endpoints)
+  app.setGlobalPrefix('api/v1', {
+    exclude: ['health', 'health/liveness', 'health/readiness'],
+  });
 
   app.enableCors({
     origin: '*', // só use '*' para desenvolvimento!
@@ -33,6 +35,7 @@ async function bootstrap() {
       },
       'JWT-auth',
     )
+    .addTag('health', 'Health check endpoints')
     .addTag('auth', 'Authentication endpoints')
     .addTag('transactions', 'Transaction management')
     .addTag('categories', 'Category management')
