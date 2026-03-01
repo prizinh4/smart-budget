@@ -129,21 +129,23 @@ export const DashboardScreen = observer(({ navigation }: any) => {
       {dashboardStore.categoriesRanking.length > 0 && (
         <View style={styles.rankingCard}>
           <Text style={styles.sectionTitle}>Gastos por Categoria</Text>
-          {dashboardStore.categoriesRanking.slice(0, 5).map((cat, i) => {
+          {dashboardStore.categoriesRanking.map((cat, i) => {
             const total = Number(cat.total);
             const maxTotal = Number(dashboardStore.categoriesRanking[0]?.total) || 1;
             const percentage = (total / maxTotal) * 100;
+            const barColor = cat.color || '#3b82f6';
             
             return (
               <View key={i} style={styles.rankingItem}>
                 <View style={styles.rankingInfo}>
+                  <Text style={styles.rankingIcon}>{cat.icon || '📦'}</Text>
                   <Text style={styles.rankingName}>{cat.name || 'Sem categoria'}</Text>
                   <Text style={styles.rankingValue}>
                     R$ {total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                   </Text>
                 </View>
                 <View style={styles.rankingBarBg}>
-                  <View style={[styles.rankingBar, { width: `${percentage}%` }]} />
+                  <View style={[styles.rankingBar, { width: `${percentage}%`, backgroundColor: barColor }]} />
                 </View>
               </View>
             );
@@ -309,12 +311,17 @@ const styles = StyleSheet.create({
   },
   rankingInfo: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: 6,
+  },
+  rankingIcon: {
+    fontSize: 16,
+    marginRight: 8,
   },
   rankingName: {
     fontSize: 14,
     color: '#475569',
+    flex: 1,
   },
   rankingValue: {
     fontSize: 14,
