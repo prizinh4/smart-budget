@@ -23,8 +23,11 @@ export class Category {
   @Column({ nullable: true })
   color: string;
 
-  @ManyToOne(() => User, user => user.id, { onDelete: 'CASCADE' })
-  user: User;
+  @Column({ default: false })
+  isSystem: boolean;
+
+  @ManyToOne(() => User, user => user.id, { onDelete: 'CASCADE', nullable: true })
+  user: User | null;
 
   @CreateDateColumn()
   createdAt: Date;
