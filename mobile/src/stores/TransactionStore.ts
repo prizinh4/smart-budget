@@ -1,5 +1,7 @@
 import { makeAutoObservable, runInAction } from "mobx";
 import { api } from "../services/api";
+import { dashboardStore } from "./DashboardStore";
+import { authStore } from "./AuthStore";
 
 interface CreateTransactionDto {
   title: string;
@@ -17,6 +19,12 @@ export class TransactionStore {
 
   constructor() {
     makeAutoObservable(this);
+  }
+
+  private async refreshDashboard() {
+    if (authStore.user?.id) {
+      await dashboardStore.fetchDashboard(authStore.user.id);
+    }
   }
 
   async fetchTransactions(page: number = 1, limit: number = 10) {
@@ -42,6 +50,7 @@ export class TransactionStore {
     try {
       await api.post('/transactions', data);
       await this.fetchTransactions();
+      await this.refreshDashboard();
     } catch (err) {
       console.error("Error creating transaction:", err);
     }
@@ -53,6 +62,7 @@ export class TransactionStore {
       runInAction(() => {
         this.transactions = this.transactions.filter(t => t.id !== id);
       });
+      await this.refreshDashboard();
     } catch (err) {
       console.error("Error deleting transaction:", err);
     }
@@ -62,6 +72,7 @@ export class TransactionStore {
     try {
       await api.put(`/transactions/${id}`, data);
       await this.fetchTransactions();
+      await this.refreshDashboard();
     } catch (err) {
       console.error("Error updating transaction:", err);
     }

@@ -1,15 +1,25 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, Inject } from '@nestjs/common';
 import { Repository } from 'typeorm';
 import { Transaction } from './transaction.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import type { Cache } from 'cache-manager';
 
 @Injectable()
 export class TransactionService {
   constructor(
     @InjectRepository(Transaction)
     private readonly transactionRepo: Repository<Transaction>,
+    @Inject(CACHE_MANAGER)
+    private cacheManager: Cache,
   ) {}
+
+  private async invalidateDashboardCache(userId: string): Promise<void> {
+    const currentMonth = new Date().toISOString().slice(0, 7);
+    const cacheKey = `user:${userId}:dashboard:${currentMonth}`;
+    await this.cacheManager.del(cacheKey);
+  }
 
   async findAll(userId: string, page = 1, limit = 10) {
     const [data, total] = await this.transactionRepo.findAndCount({
@@ -54,7 +64,9 @@ export class TransactionService {
       category: dto.categoryId ? { id: dto.categoryId } : undefined,
     });
 
-    return this.transactionRepo.save(transaction);
+    const saved = await this.transactionRepo.save(transaction);
+    await this.invalidateDashboardCache(userId);
+    return saved;
   }
 
   async update(id: string, userId: string, dto: Partial<CreateTransactionDto>) {
@@ -67,12 +79,15 @@ export class TransactionService {
       transaction.category = dto.categoryId ? { id: dto.categoryId } as any : null;
     }
 
-    return this.transactionRepo.save(transaction);
+    const saved = await this.transactionRepo.save(transaction);
+    await this.invalidateDashboardCache(userId);
+    return saved;
   }
 
   async remove(id: string, userId: string) {
     const transaction = await this.findOne(id, userId);
     await this.transactionRepo.remove(transaction);
+    await this.invalidateDashboardCache(userId);
     return { deleted: true };
   }
 }
