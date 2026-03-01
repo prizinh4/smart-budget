@@ -6,6 +6,8 @@ import { AuthModule } from './auth/auth.module';
 import { TransactionModule } from './transaction/transaction.module';
 import { CategoryModule } from './category/category.module';
 import { GoalModule } from './goal/goal.module';
+import { DashboardModule } from './dashboard/dashboard.module';
+import { CacheConfigModule } from './cache/cache.module';
 
 @Module({
   imports: [
@@ -20,11 +22,13 @@ import { GoalModule } from './goal/goal.module';
       autoLoadEntities: true,
       synchronize: true, 
     }),
+    CacheConfigModule,
     UserModule,
     AuthModule,
     TransactionModule,
     CategoryModule,
     GoalModule,
+    DashboardModule,
   ],
 })
 export class AppModule {}

@@ -1,6 +1,7 @@
-import { Controller, Get, Query, UseGuards, Request } from '@nestjs/common';
+import { Controller, Get, Post, Body, Query, UseGuards, Request } from '@nestjs/common';
 import { TransactionService } from './transaction.service';
 import { AuthGuard } from '@nestjs/passport';
+import { CreateTransactionDto } from './dto/create-transaction.dto';
 
 @Controller('transactions')
 export class TransactionController {
@@ -14,5 +15,14 @@ export class TransactionController {
     @Query('limit') limit: number = 10,
   ) {
     return this.transactionService.findAll(req.user.userId, page, limit);
+  }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Post()
+  createTransaction(
+    @Request() req,
+    @Body() createTransactionDto: CreateTransactionDto,
+  ) {
+    return this.transactionService.create(req.user.userId, createTransactionDto);
   }
 }

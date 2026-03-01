@@ -1,4 +1,4 @@
-import { makeAutoObservable } from 'mobx';
+import { makeAutoObservable, runInAction } from "mobx";
 import { api } from '../services/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -14,14 +14,24 @@ class AuthStore {
   async login(email: string, password: string) {
     this.loading = true;
     try {
-      const response = await api.post('/auth/login', { email, password });
-      this.token = response.data.access_token;
-      api.defaults.headers.common['Authorization'] = `Bearer ${this.token}`;
-      if (this.token) {
-        await AsyncStorage.setItem('token', this.token);
-      }
-    } finally {
-      this.loading = false;
+      const res = await api.post("/auth/login", { email, password });
+
+      console.log("LOGIN RESPONSE FULL:", JSON.stringify(res.data, null, 2));
+
+      runInAction(() => {
+        this.user = {
+          id: res.data.id,
+          email: res.data.email,
+        };
+        this.token = res.data.access_token;
+        api.defaults.headers.common['Authorization'] = `Bearer ${res.data.access_token}`;
+        this.loading = false;
+      });
+    } catch (err) {
+      runInAction(() => {
+        this.loading = false;
+      });
+      console.error(err);
     }
   }
 

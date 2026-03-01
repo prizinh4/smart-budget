@@ -1,41 +1,33 @@
-import { makeAutoObservable, runInAction } from 'mobx';
-import { api } from '../services/api';
-import { authStore } from './AuthStore';
+import { makeAutoObservable, runInAction } from "mobx";
+import { api } from "../services/api";
 
 export class TransactionStore {
   transactions: any[] = [];
-  page = 1;
-  lastPage = 1;
-  loading = false;
+  total: number = 0;
+  page: number = 1;
+  lastPage: number = 1;
+  loading: boolean = false;
 
   constructor() {
     makeAutoObservable(this);
   }
 
-  async fetchTransactions(page = 1, limit = 10) {
-    if (!authStore.token) return;
+  async fetchTransactions(page: number = 1, limit: number = 10) {
     this.loading = true;
     try {
-      const response = await api.get('/transactions', { params: { page, limit } });
+      const res = await api.get(`/transactions?page=${page}&limit=${limit}`);
       runInAction(() => {
-        this.transactions = response.data.data;
-        this.page = response.data.page;
-        this.lastPage = response.data.lastPage;
+        this.transactions = res.data.data;
+        this.total = res.data.total;
+        this.page = res.data.page;
+        this.lastPage = res.data.lastPage;
+        this.loading = false;
       });
-    } finally {
-      runInAction(() => { this.loading = false; });
-    }
-  }
-
-  async nextPage() {
-    if (this.page < this.lastPage) {
-      await this.fetchTransactions(this.page + 1);
-    }
-  }
-
-  async prevPage() {
-    if (this.page > 1) {
-      await this.fetchTransactions(this.page - 1);
+    } catch (err) {
+      runInAction(() => {
+        this.loading = false;
+      });
+      console.error("Error fetching transactions:", err);
     }
   }
 }

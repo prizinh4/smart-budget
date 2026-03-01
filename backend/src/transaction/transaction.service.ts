@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { Repository } from 'typeorm';
 import { Transaction } from './transaction.entity';
 import { InjectRepository } from '@nestjs/typeorm';
+import { CreateTransactionDto } from './dto/create-transaction.dto';
 
 @Injectable()
 export class TransactionService {
@@ -25,5 +26,17 @@ export class TransactionService {
       page,
       lastPage: Math.ceil(total / limit),
     };
+  }
+
+  async create(userId: string, dto: CreateTransactionDto) {
+    const transaction = this.transactionRepo.create({
+      title: dto.title,
+      amount: dto.amount,
+      type: dto.type,
+      user: { id: userId },
+      category: dto.categoryId ? { id: dto.categoryId } : undefined,
+    });
+
+    return this.transactionRepo.save(transaction);
   }
 }
