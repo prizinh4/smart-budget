@@ -2,8 +2,16 @@ import { makeAutoObservable, runInAction} from "mobx";
 import { api, Goal, CreateGoalDto, GoalProgress } from '../services/api';
 import { dashboardStore } from './DashboardStore';
 
+export interface Contribution {
+  id: string;
+  title: string;
+  amount: number;
+  createdAt: string;
+}
+
 class GoalStore {
   goals: Goal[] = [];
+  contributions: Map<string, Contribution[]> = new Map();
   loading = false;
   error: string | null = null;
 
@@ -101,6 +109,50 @@ class GoalStore {
     } catch (err: any) {
       runInAction(() => {
         this.error = err.response?.data?.message || 'Failed to get progress';
+      });
+      return null;
+    }
+  }
+
+  async getContributions(goalId: string): Promise<Contribution[]> {
+    try {
+      const res = await api.get<Contribution[]>(`/goals/${goalId}/contributions`);
+      runInAction(() => {
+        this.contributions.set(goalId, res.data);
+      });
+      return res.data;
+    } catch (err: any) {
+      runInAction(() => {
+        this.error = err.response?.data?.message || 'Failed to load contributions';
+      });
+      return [];
+    }
+  }
+
+  async removeContribution(goalId: string, transactionId: string): Promise<Goal | null> {
+    this.loading = true;
+    try {
+      const res = await api.delete<Goal>(`/goals/${goalId}/contributions/${transactionId}`);
+      runInAction(() => {
+        // Update goal in list
+        const index = this.goals.findIndex(g => g.id === goalId);
+        if (index !== -1) {
+          this.goals[index] = res.data;
+        }
+        // Remove from contributions cache
+        const contribs = this.contributions.get(goalId);
+        if (contribs) {
+          this.contributions.set(goalId, contribs.filter(c => c.id !== transactionId));
+        }
+        this.loading = false;
+      });
+      // Refresh dashboard since transaction was deleted
+      dashboardStore.fetchDashboard();
+      return res.data;
+    } catch (err: any) {
+      runInAction(() => {
+        this.error = err.response?.data?.message || 'Failed to remove contribution';
+        this.loading = false;
       });
       return null;
     }

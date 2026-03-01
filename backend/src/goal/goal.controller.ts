@@ -98,6 +98,32 @@ export class GoalController {
     return this.goalService.addContribution(id, contributionDto, req.user.userId);
   }
 
+  @Get(':id/contributions')
+  @ApiOperation({ summary: 'Get all contributions for a goal' })
+  @ApiResponse({ status: 200, description: 'List of contributions (transactions)' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 404, description: 'Goal not found' })
+  async getContributions(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Request() req,
+  ) {
+    return this.goalService.getContributions(id, req.user.userId);
+  }
+
+  @Delete(':id/contributions/:transactionId')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Remove a contribution from a goal (undo)' })
+  @ApiResponse({ status: 200, description: 'Contribution removed, goal updated' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 404, description: 'Goal or contribution not found' })
+  async removeContribution(
+    @Param('id', ParseUUIDPipe) goalId: string,
+    @Param('transactionId', ParseUUIDPipe) transactionId: string,
+    @Request() req,
+  ) {
+    return this.goalService.removeContribution(goalId, transactionId, req.user.userId);
+  }
+
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Delete a goal' })

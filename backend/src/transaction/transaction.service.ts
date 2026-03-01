@@ -62,6 +62,7 @@ export class TransactionService {
       type: dto.type,
       user: { id: userId },
       category: dto.categoryId ? { id: dto.categoryId } : undefined,
+      goal: dto.goalId ? { id: dto.goalId } : undefined,
     });
 
     const saved = await this.transactionRepo.save(transaction);
@@ -89,5 +90,34 @@ export class TransactionService {
     await this.transactionRepo.remove(transaction);
     await this.invalidateDashboardCache(userId);
     return { deleted: true };
+  }
+
+  async findByGoalId(goalId: string, userId: string) {
+    return this.transactionRepo.find({
+      where: { 
+        goal: { id: goalId },
+        user: { id: userId },
+      },
+      order: { createdAt: 'DESC' },
+    });
+  }
+
+  async removeByGoalId(goalId: string, transactionId: string, userId: string) {
+    const transaction = await this.transactionRepo.findOne({
+      where: { 
+        id: transactionId,
+        goal: { id: goalId },
+        user: { id: userId },
+      },
+    });
+
+    if (!transaction) {
+      throw new NotFoundException('Transaction not found for this goal');
+    }
+
+    const amount = Number(transaction.amount);
+    await this.transactionRepo.remove(transaction);
+    await this.invalidateDashboardCache(userId);
+    return { deleted: true, amount };
   }
 }

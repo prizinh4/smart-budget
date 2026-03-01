@@ -22,4 +22,9 @@ export class CreateTransactionDto {
   @IsOptional()
   @IsUUID()
   categoryId?: string;
+
+  @ApiPropertyOptional({ example: 'uuid-goal-123', description: 'Goal ID for contribution tracking (optional)' })
+  @IsOptional()
+  @IsUUID()
+  goalId?: string;
 }

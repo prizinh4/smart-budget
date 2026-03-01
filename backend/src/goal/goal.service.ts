@@ -85,13 +85,36 @@ export class GoalService {
       goal.status = GoalStatus.COMPLETED;
     }
 
-    // Create an expense transaction for this contribution
+    // Create an expense transaction for this contribution (linked to goal)
     const transactionTitle = contributionDto.description || `Meta: ${goal.name}`;
     await this.transactionService.create(userId, {
       title: transactionTitle,
       amount: contributionDto.amount,
       type: TransactionType.EXPENSE,
+      goalId: id,
     });
+
+    return this.goalRepository.save(goal);
+  }
+
+  async getContributions(id: string, userId: string) {
+    await this.findOne(id, userId); // Verify access
+    return this.transactionService.findByGoalId(id, userId);
+  }
+
+  async removeContribution(goalId: string, transactionId: string, userId: string): Promise<Goal> {
+    const goal = await this.findOne(goalId, userId);
+
+    const result = await this.transactionService.removeByGoalId(goalId, transactionId, userId);
+    
+    // Reduce goal currentAmount
+    const newAmount = Math.max(0, Number(goal.currentAmount) - result.amount);
+    goal.currentAmount = newAmount;
+
+    // If goal was completed and now is below target, reactivate it
+    if (goal.status === GoalStatus.COMPLETED && newAmount < Number(goal.targetAmount)) {
+      goal.status = GoalStatus.ACTIVE;
+    }
 
     return this.goalRepository.save(goal);
   }

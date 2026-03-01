@@ -9,9 +9,10 @@ import {
   Modal,
   Alert,
   ActivityIndicator,
+  ScrollView,
 } from 'react-native';
 import { observer } from 'mobx-react-lite';
-import { goalStore } from '../stores/GoalStore';
+import { goalStore, Contribution } from '../stores/GoalStore';
 import { Goal, CreateGoalDto } from '../services/api';
 
 const COLORS = ['#4CAF50', '#2196F3', '#FF5722', '#9C27B0', '#FF9800', '#E91E63'];
@@ -19,7 +20,9 @@ const COLORS = ['#4CAF50', '#2196F3', '#FF5722', '#9C27B0', '#FF9800', '#E91E63'
 export const GoalListScreen = observer(() => {
   const [modalVisible, setModalVisible] = useState(false);
   const [contributeModalVisible, setContributeModalVisible] = useState(false);
+  const [historyModalVisible, setHistoryModalVisible] = useState(false);
   const [selectedGoal, setSelectedGoal] = useState<Goal | null>(null);
+  const [contributions, setContributions] = useState<Contribution[]>([]);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [targetAmount, setTargetAmount] = useState('');
@@ -108,6 +111,36 @@ export const GoalListScreen = observer(() => {
     );
   };
 
+  const openHistoryModal = async (goal: Goal) => {
+    setSelectedGoal(goal);
+    const data = await goalStore.getContributions(goal.id);
+    setContributions(data);
+    setHistoryModalVisible(true);
+  };
+
+  const handleRemoveContribution = (contribution: Contribution) => {
+    if (!selectedGoal) return;
+    
+    Alert.alert(
+      'Undo Contribution',
+      `Remove "${contribution.title}" (R$ ${Number(contribution.amount).toFixed(2)})?\n\nThis will add the amount back to your balance.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Remove',
+          style: 'destructive',
+          onPress: async () => {
+            const updatedGoal = await goalStore.removeContribution(selectedGoal.id, contribution.id);
+            if (updatedGoal) {
+              setContributions(contributions.filter(c => c.id !== contribution.id));
+              Alert.alert('Removed', 'Contribution was removed and your balance was updated.');
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const handleDelete = (goal: Goal) => {
     Alert.alert(
       'Delete Goal',
@@ -181,14 +214,24 @@ export const GoalListScreen = observer(() => {
           )}
         </View>
 
-        {item.status === 'active' && (
-          <TouchableOpacity
-            style={styles.contributeButton}
-            onPress={() => openContributeModal(item)}
-          >
-            <Text style={styles.contributeText}>+ Add Contribution</Text>
-          </TouchableOpacity>
-        )}
+        <View style={styles.goalActions}>
+          {item.status === 'active' && (
+            <TouchableOpacity
+              style={styles.contributeButton}
+              onPress={() => openContributeModal(item)}
+            >
+              <Text style={styles.contributeText}>+ Contribute</Text>
+            </TouchableOpacity>
+          )}
+          {Number(item.currentAmount) > 0 && (
+            <TouchableOpacity
+              style={styles.historyButton}
+              onPress={() => openHistoryModal(item)}
+            >
+              <Text style={styles.historyText}>📜 History</Text>
+            </TouchableOpacity>
+          )}
+        </View>
       </TouchableOpacity>
     );
   };
@@ -348,6 +391,55 @@ export const GoalListScreen = observer(() => {
           </View>
         </View>
       </Modal>
+
+      {/* History Modal */}
+      <Modal visible={historyModalVisible} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Contribution History</Text>
+            {selectedGoal && (
+              <Text style={styles.contributeInfo}>
+                {selectedGoal.name} - {formatCurrency(selectedGoal.currentAmount)}
+              </Text>
+            )}
+
+            {contributions.length === 0 ? (
+              <Text style={styles.emptyHistory}>No contributions recorded yet.</Text>
+            ) : (
+              <ScrollView style={styles.contributionsList}>
+                {contributions.map((c) => (
+                  <View key={c.id} style={styles.contributionItem}>
+                    <View style={styles.contributionInfo}>
+                      <Text style={styles.contributionTitle}>{c.title}</Text>
+                      <Text style={styles.contributionDate}>
+                        {new Date(c.createdAt).toLocaleDateString('pt-BR')}
+                      </Text>
+                    </View>
+                    <View style={styles.contributionRight}>
+                      <Text style={styles.contributionAmount}>
+                        {formatCurrency(c.amount)}
+                      </Text>
+                      <TouchableOpacity
+                        style={styles.undoButton}
+                        onPress={() => handleRemoveContribution(c)}
+                      >
+                        <Text style={styles.undoText}>Undo</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                ))}
+              </ScrollView>
+            )}
+
+            <TouchableOpacity
+              style={[styles.cancelButton, { marginTop: 16 }]}
+              onPress={() => setHistoryModalVisible(false)}
+            >
+              <Text style={styles.cancelText}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 });
@@ -404,14 +496,23 @@ const styles = StyleSheet.create({
   goalFooter: { flexDirection: 'row', justifyContent: 'space-between' },
   amountText: { color: '#333', fontWeight: '500' },
   deadlineText: { color: '#666', fontSize: 12 },
+  goalActions: { flexDirection: 'row', gap: 8, marginTop: 12 },
   contributeButton: {
-    marginTop: 12,
+    flex: 1,
     padding: 10,
     backgroundColor: '#e3f2fd',
     borderRadius: 8,
     alignItems: 'center',
   },
   contributeText: { color: '#2196F3', fontWeight: '500' },
+  historyButton: {
+    flex: 1,
+    padding: 10,
+    backgroundColor: '#fff3e0',
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  historyText: { color: '#FF9800', fontWeight: '500' },
   emptyText: { textAlign: 'center', marginTop: 50, color: '#999' },
   fab: {
     position: 'absolute',
@@ -471,4 +572,27 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   saveText: { color: '#fff', fontWeight: 'bold' },
+  emptyHistory: { textAlign: 'center', color: '#999', marginVertical: 20 },
+  contributionsList: { maxHeight: 300 },
+  contributionItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  contributionInfo: { flex: 1 },
+  contributionTitle: { fontSize: 14, fontWeight: '500' },
+  contributionDate: { fontSize: 12, color: '#999', marginTop: 2 },
+  contributionRight: { alignItems: 'flex-end' },
+  contributionAmount: { fontSize: 14, fontWeight: '600', color: '#333' },
+  undoButton: {
+    marginTop: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    backgroundColor: '#ffebee',
+    borderRadius: 4,
+  },
+  undoText: { color: '#f44336', fontSize: 12, fontWeight: '500' },
 });
