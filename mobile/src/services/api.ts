@@ -1,14 +1,20 @@
 import axios from 'axios';
-import Constants from 'expo-constants';
 import { Platform } from 'react-native';
+
+// Importa IP local (arquivo ignorado pelo git)
+let localIp = 'localhost';
+try {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const envLocal = require('../config/env.local');
+  localIp = envLocal.LOCAL_IP;
+} catch {
+  console.warn('env.local.ts not found, using localhost. Copy env.example.ts to env.local.ts and set your IP.');
+}
 
 let API_URL = 'http://localhost:3000/api/v1'; 
 
 if (Platform.OS !== 'web') {
-  const debuggerHost = Constants.manifest?.debuggerHost?.split(':')[0];
-  if (debuggerHost) {
-    API_URL = `http://${debuggerHost}:3000/api/v1`;
-  }
+  API_URL = `http://${localIp}:3000/api/v1`;
 }
 
 export const api = axios.create({

@@ -1,6 +1,13 @@
 import { makeAutoObservable, runInAction } from "mobx";
 import { api } from "../services/api";
 
+interface CreateTransactionDto {
+  title: string;
+  amount: number;
+  type: 'income' | 'expense';
+  categoryId?: string;
+}
+
 export class TransactionStore {
   transactions: any[] = [];
   total: number = 0;
@@ -28,6 +35,26 @@ export class TransactionStore {
         this.loading = false;
       });
       console.error("Error fetching transactions:", err);
+    }
+  }
+
+  async createTransaction(data: CreateTransactionDto) {
+    try {
+      await api.post('/transactions', data);
+      await this.fetchTransactions();
+    } catch (err) {
+      console.error("Error creating transaction:", err);
+    }
+  }
+
+  async deleteTransaction(id: string) {
+    try {
+      await api.delete(`/transactions/${id}`);
+      runInAction(() => {
+        this.transactions = this.transactions.filter(t => t.id !== id);
+      });
+    } catch (err) {
+      console.error("Error deleting transaction:", err);
     }
   }
 }
