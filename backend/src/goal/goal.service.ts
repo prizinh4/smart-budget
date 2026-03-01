@@ -102,6 +102,29 @@ export class GoalService {
     return this.transactionService.findByGoalId(id, userId);
   }
 
+  async syncExistingAmount(id: string, userId: string): Promise<Goal> {
+    const goal = await this.findOne(id, userId);
+    
+    // Check if there are already linked transactions
+    const existingContributions = await this.transactionService.findByGoalId(id, userId);
+    const trackedAmount = existingContributions.reduce((sum, t) => sum + Number(t.amount), 0);
+    const untrackedAmount = Number(goal.currentAmount) - trackedAmount;
+
+    if (untrackedAmount <= 0) {
+      return goal; // Nothing to sync
+    }
+
+    // Create a transaction for the untracked amount
+    await this.transactionService.create(userId, {
+      title: `Meta: ${goal.name} (sync)`,
+      amount: untrackedAmount,
+      type: TransactionType.EXPENSE,
+      goalId: id,
+    });
+
+    return goal;
+  }
+
   async removeContribution(goalId: string, transactionId: string, userId: string): Promise<Goal> {
     const goal = await this.findOne(goalId, userId);
 

@@ -129,6 +129,28 @@ class GoalStore {
     }
   }
 
+  async syncExistingAmount(goalId: string): Promise<boolean> {
+    this.loading = true;
+    try {
+      await api.post<Goal>(`/goals/${goalId}/sync`);
+      // Refresh contributions after sync
+      const contribs = await this.getContributions(goalId);
+      runInAction(() => {
+        this.contributions.set(goalId, contribs);
+        this.loading = false;
+      });
+      // Refresh dashboard since we created an expense
+      dashboardStore.fetchDashboard();
+      return true;
+    } catch (err: any) {
+      runInAction(() => {
+        this.error = err.response?.data?.message || 'Failed to sync goal';
+        this.loading = false;
+      });
+      return false;
+    }
+  }
+
   async removeContribution(goalId: string, transactionId: string): Promise<Goal | null> {
     this.loading = true;
     try {

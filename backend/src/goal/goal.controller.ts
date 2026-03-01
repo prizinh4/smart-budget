@@ -110,6 +110,18 @@ export class GoalController {
     return this.goalService.getContributions(id, req.user.userId);
   }
 
+  @Post(':id/sync')
+  @ApiOperation({ summary: 'Sync existing goal amount as a tracked contribution' })
+  @ApiResponse({ status: 200, description: 'Goal synced - untracked amount now has a transaction' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 404, description: 'Goal not found' })
+  async syncExistingAmount(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Request() req,
+  ) {
+    return this.goalService.syncExistingAmount(id, req.user.userId);
+  }
+
   @Delete(':id/contributions/:transactionId')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Remove a contribution from a goal (undo)' })

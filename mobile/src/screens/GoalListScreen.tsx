@@ -141,6 +141,20 @@ export const GoalListScreen = observer(() => {
     );
   };
 
+  const handleSyncGoal = async () => {
+    if (!selectedGoal) return;
+    
+    const success = await goalStore.syncExistingAmount(selectedGoal.id);
+    if (success) {
+      const data = await goalStore.getContributions(selectedGoal.id);
+      setContributions(data);
+      Alert.alert(
+        'Synced',
+        'Existing amount was converted to a tracked contribution. Your balance has been updated.'
+      );
+    }
+  };
+
   const handleDelete = (goal: Goal) => {
     Alert.alert(
       'Delete Goal',
@@ -404,7 +418,25 @@ export const GoalListScreen = observer(() => {
             )}
 
             {contributions.length === 0 ? (
-              <Text style={styles.emptyHistory}>No contributions recorded yet.</Text>
+              <View style={styles.emptyHistoryContainer}>
+                <Text style={styles.emptyHistory}>No contributions recorded yet.</Text>
+                {selectedGoal && Number(selectedGoal.currentAmount) > 0 && (
+                  <View style={styles.syncContainer}>
+                    <Text style={styles.syncHint}>
+                      You have {formatCurrency(selectedGoal.currentAmount)} not tracked.
+                    </Text>
+                    <TouchableOpacity
+                      style={styles.syncButton}
+                      onPress={handleSyncGoal}
+                    >
+                      <Text style={styles.syncText}>🔄 Sync existing amount</Text>
+                    </TouchableOpacity>
+                    <Text style={styles.syncWarning}>
+                      This will create an expense transaction and affect your balance.
+                    </Text>
+                  </View>
+                )}
+              </View>
             ) : (
               <ScrollView style={styles.contributionsList}>
                 {contributions.map((c) => (
@@ -572,7 +604,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   saveText: { color: '#fff', fontWeight: 'bold' },
-  emptyHistory: { textAlign: 'center', color: '#999', marginVertical: 20 },
+  emptyHistoryContainer: { alignItems: 'center', paddingVertical: 10 },
+  emptyHistory: { textAlign: 'center', color: '#999', marginBottom: 10 },
+  syncContainer: { alignItems: 'center', marginTop: 10, padding: 16, backgroundColor: '#fff8e1', borderRadius: 8 },
+  syncHint: { color: '#f57c00', fontWeight: '500', marginBottom: 12, textAlign: 'center' },
+  syncButton: { backgroundColor: '#ff9800', paddingHorizontal: 20, paddingVertical: 12, borderRadius: 8 },
+  syncText: { color: '#fff', fontWeight: 'bold' },
+  syncWarning: { color: '#999', fontSize: 11, marginTop: 8, textAlign: 'center', fontStyle: 'italic' },
   contributionsList: { maxHeight: 300 },
   contributionItem: {
     flexDirection: 'row',
