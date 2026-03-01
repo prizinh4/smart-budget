@@ -80,8 +80,8 @@ describe('DashboardService', () => {
         .mockResolvedValueOnce({ sum: '5000' }) // income
         .mockResolvedValueOnce({ sum: '2000' }); // expenses
       mockQueryBuilder.getRawMany.mockResolvedValue([
-        { name: 'Food', total: '1000' },
-        { name: 'Transport', total: '500' },
+        { name: 'Food', icon: '🍔', color: '#FF6B6B', total: '1000' },
+        { name: 'Transport', icon: '🚗', color: '#4ECDC4', total: '500' },
       ]);
 
       const result = await service.getDashboard(userId, month);
@@ -94,8 +94,8 @@ describe('DashboardService', () => {
         totalExpenses: 2000,
         balance: 3000,
         categoriesRanking: [
-          { name: 'Food', total: '1000' },
-          { name: 'Transport', total: '500' },
+          { name: 'Food', icon: '🍔', color: '#FF6B6B', total: '1000' },
+          { name: 'Transport', icon: '🚗', color: '#4ECDC4', total: '500' },
         ],
       });
     });

@@ -61,17 +61,23 @@ export class DashboardService {
       .andWhere('t.createdAt BETWEEN :startDate AND :endDate', { startDate, endDate })
       .getRawOne();
 
-    // Ranking by categories
+    // Ranking by categories (only expenses, excluding goal contributions without category)
     const categoriesRanking = await this.transactionRepo
       .createQueryBuilder('t')
       .leftJoin('t.user', 'user')
       .leftJoin('t.category', 'category')
       .select('category.name', 'name')
+      .addSelect('category.icon', 'icon')
+      .addSelect('category.color', 'color')
       .addSelect('SUM(t.amount)', 'total')
       .where('user.id = :userId', { userId })
+      .andWhere('t.type = :type', { type: 'expense' })
       .andWhere('t.createdAt BETWEEN :startDate AND :endDate', { startDate, endDate })
+      .andWhere('category.id IS NOT NULL')
       .groupBy('category.id')
       .addGroupBy('category.name')
+      .addGroupBy('category.icon')
+      .addGroupBy('category.color')
       .orderBy('total', 'DESC')
       .getRawMany();
 

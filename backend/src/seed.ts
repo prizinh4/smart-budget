@@ -62,10 +62,17 @@ function randomBetween(min: number, max: number): number {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
-function randomDate(daysBack: number): Date {
-  const date = new Date();
-  date.setDate(date.getDate() - randomBetween(0, daysBack));
-  return date;
+function randomDateCurrentMonth(): Date {
+  const now = new Date();
+  const day = randomBetween(1, now.getDate());
+  return new Date(now.getFullYear(), now.getMonth(), day, randomBetween(8, 22), randomBetween(0, 59));
+}
+
+function randomDatePastMonths(monthsBack: number): Date {
+  const now = new Date();
+  const monthOffset = randomBetween(1, monthsBack);
+  const targetMonth = now.getMonth() - monthOffset;
+  return new Date(now.getFullYear(), targetMonth, randomBetween(1, 28), randomBetween(8, 22), randomBetween(0, 59));
 }
 
 function randomElement<T>(arr: T[]): T {
@@ -225,7 +232,7 @@ async function seed() {
         type: isExpense ? TransactionType.EXPENSE : TransactionType.INCOME,
         category,
         user: savedUser,
-        createdAt: randomDate(90),
+        createdAt: Math.random() > 0.3 ? randomDateCurrentMonth() : randomDatePastMonths(3),
       });
       await transactionRepo.save(transaction);
     }
@@ -248,22 +255,59 @@ async function seed() {
     const selectedGoals = [...goalTemplates].sort(() => Math.random() - 0.5).slice(0, numGoals);
     
     for (const goalData of selectedGoals) {
-      const currentAmount = randomBetween(0, Math.floor(goalData.targetAmount * 0.7));
       const deadline = new Date();
       deadline.setMonth(deadline.getMonth() + randomBetween(3, 18));
       
+      // Create goal with zero initial amount
       const goal = goalRepo.create({
         name: goalData.name,
         description: `Meta para ${goalData.name.toLowerCase()}`,
         targetAmount: goalData.targetAmount,
-        currentAmount,
-        status: currentAmount >= goalData.targetAmount ? GoalStatus.COMPLETED : GoalStatus.ACTIVE,
+        currentAmount: 0,
+        status: GoalStatus.ACTIVE,
         deadline,
         icon: goalData.icon,
         color: goalData.color,
         user: savedUser,
       });
-      await goalRepo.save(goal);
+      const savedGoal = await goalRepo.save(goal);
+      
+      // Create contribution transactions for this goal (2-5 contributions)
+      const numContributions = randomBetween(2, 5);
+      let totalContributed = 0;
+      const maxContribution = Math.floor(goalData.targetAmount * 0.7);
+      
+      for (let c = 0; c < numContributions; c++) {
+        const remaining = maxContribution - totalContributed;
+        if (remaining <= 0) break;
+        
+        const contributionAmount = randomBetween(
+          Math.floor(remaining * 0.1),
+          Math.floor(remaining * 0.5)
+        );
+        
+        if (contributionAmount <= 0) break;
+        
+        totalContributed += contributionAmount;
+        
+        // Create contribution transaction
+        const contrib = transactionRepo.create({
+          title: `Meta: ${goalData.name}`,
+          amount: contributionAmount,
+          type: TransactionType.EXPENSE,
+          user: savedUser,
+          goal: savedGoal,
+          createdAt: Math.random() > 0.5 ? randomDateCurrentMonth() : randomDatePastMonths(2),
+        });
+        await transactionRepo.save(contrib);
+      }
+      
+      // Update goal with total contributed amount
+      savedGoal.currentAmount = totalContributed;
+      if (totalContributed >= goalData.targetAmount) {
+        savedGoal.status = GoalStatus.COMPLETED;
+      }
+      await goalRepo.save(savedGoal);
     }
   }
   
