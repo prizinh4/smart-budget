@@ -7,6 +7,7 @@ export const DashboardScreen = observer(({ navigation }: any) => {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Dashboard</Text>
+      <Button title="View Transactions" onPress={() => navigation.navigate('Transactions')} />
       <Button title="Logout" onPress={async () => { await authStore.logout(); navigation.replace('Login'); }} />
     </View>
   );
