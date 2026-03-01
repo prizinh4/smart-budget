@@ -57,6 +57,15 @@ export class TransactionStore {
       console.error("Error deleting transaction:", err);
     }
   }
+
+  async updateTransaction(id: string, data: CreateTransactionDto) {
+    try {
+      await api.put(`/transactions/${id}`, data);
+      await this.fetchTransactions();
+    } catch (err) {
+      console.error("Error updating transaction:", err);
+    }
+  }
 }
 
 export const transactionStore = new TransactionStore();

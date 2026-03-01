@@ -3,6 +3,7 @@ import { TransactionService } from './transaction.service';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Transaction, TransactionType } from './transaction.entity';
 import { Repository } from 'typeorm';
+import { NotFoundException, ForbiddenException } from '@nestjs/common';
 
 describe('TransactionService', () => {
   let service: TransactionService;
@@ -10,8 +11,10 @@ describe('TransactionService', () => {
 
   const mockRepository = {
     findAndCount: jest.fn(),
+    findOne: jest.fn(),
     create: jest.fn(),
     save: jest.fn(),
+    remove: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -112,6 +115,61 @@ describe('TransactionService', () => {
         user: { id: userId },
         category: undefined,
       });
+    });
+  });
+
+  describe('findOne', () => {
+    it('should return a transaction if found and owned by user', async () => {
+      const userId = 'user-uuid-123';
+      const transaction = { id: 'tx-1', title: 'Salary', user: { id: userId } };
+      mockRepository.findOne.mockResolvedValue(transaction);
+
+      const result = await service.findOne('tx-1', userId);
+
+      expect(result).toEqual(transaction);
+    });
+
+    it('should throw NotFoundException if transaction not found', async () => {
+      mockRepository.findOne.mockResolvedValue(null);
+
+      await expect(service.findOne('tx-1', 'user-123')).rejects.toThrow(NotFoundException);
+    });
+
+    it('should throw ForbiddenException if transaction belongs to another user', async () => {
+      const transaction = { id: 'tx-1', title: 'Salary', user: { id: 'other-user' } };
+      mockRepository.findOne.mockResolvedValue(transaction);
+
+      await expect(service.findOne('tx-1', 'user-123')).rejects.toThrow(ForbiddenException);
+    });
+  });
+
+  describe('update', () => {
+    it('should update and return transaction', async () => {
+      const userId = 'user-uuid-123';
+      const transaction = { id: 'tx-1', title: 'Old', amount: 100, type: TransactionType.EXPENSE, user: { id: userId } };
+      const updatedData = { title: 'New', amount: 200 };
+
+      mockRepository.findOne.mockResolvedValue({ ...transaction });
+      mockRepository.save.mockResolvedValue({ ...transaction, ...updatedData });
+
+      const result = await service.update('tx-1', userId, updatedData);
+
+      expect(result.title).toBe('New');
+      expect(result.amount).toBe(200);
+    });
+  });
+
+  describe('remove', () => {
+    it('should delete transaction and return confirmation', async () => {
+      const userId = 'user-uuid-123';
+      const transaction = { id: 'tx-1', title: 'Salary', user: { id: userId } };
+      mockRepository.findOne.mockResolvedValue(transaction);
+      mockRepository.remove.mockResolvedValue(transaction);
+
+      const result = await service.remove('tx-1', userId);
+
+      expect(result).toEqual({ deleted: true });
+      expect(mockRepository.remove).toHaveBeenCalledWith(transaction);
     });
   });
 });
