@@ -1,5 +1,10 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, CreateDateColumn, UpdateDateColumn } from 'typeorm';
 import { User } from '../user/user.entity';
+
+export enum CategoryType {
+  INCOME = 'income',
+  EXPENSE = 'expense',
+}
 
 @Entity()
 export class Category {
@@ -9,6 +14,21 @@ export class Category {
   @Column()
   name: string;
 
-  @ManyToOne(() => User, user => user.id)
+  @Column({ type: 'enum', enum: CategoryType })
+  type: CategoryType;
+
+  @Column({ nullable: true })
+  icon: string;
+
+  @Column({ nullable: true })
+  color: string;
+
+  @ManyToOne(() => User, user => user.id, { onDelete: 'CASCADE' })
   user: User;
+
+  @CreateDateColumn()
+  createdAt: Date;
+
+  @UpdateDateColumn()
+  updatedAt: Date;
 }
