@@ -1,0 +1,36 @@
+{
+  "name": "smart-budget-infra",
+  "version": "1.0.0",
+  "description": "AWS CDK infrastructure for SmartBudget",
+  "main": "bin/app.js",
+  "bin": {
+    "smart-budget-infra": "bin/app.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc -w",
+    "cdk": "cdk",
+    "synth": "cdk synth",
+    "deploy:dev": "cdk deploy -c environment=dev",
+    "deploy:staging": "cdk deploy -c environment=staging",
+    "deploy:prod": "cdk deploy -c environment=prod --require-approval broadening",
+    "diff:dev": "cdk diff -c environment=dev",
+    "diff:prod": "cdk diff -c environment=prod",
+    "destroy:dev": "cdk destroy -c environment=dev"
+  },
+  "keywords": [
+    "aws",
+    "cdk",
+    "infrastructure"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@types/node": "^25.3.3",
+    "aws-cdk-lib": "^2.240.0",
+    "constructs": "^10.5.1",
+    "source-map-support": "^0.5.21",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3"
+  }
+}
