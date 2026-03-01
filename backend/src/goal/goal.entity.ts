@@ -1,5 +1,11 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, CreateDateColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, CreateDateColumn, UpdateDateColumn } from 'typeorm';
 import { User } from '../user/user.entity';
+
+export enum GoalStatus {
+  ACTIVE = 'active',
+  COMPLETED = 'completed',
+  CANCELLED = 'cancelled',
+}
 
 @Entity()
 export class Goal {
@@ -9,15 +15,33 @@ export class Goal {
   @Column()
   name: string;
 
-  @Column('decimal')
+  @Column({ nullable: true })
+  description: string;
+
+  @Column('decimal', { precision: 12, scale: 2 })
   targetAmount: number;
 
-  @Column('decimal', { default: 0 })
+  @Column('decimal', { precision: 12, scale: 2, default: 0 })
   currentAmount: number;
 
-  @ManyToOne(() => User, user => user.id)
+  @Column({ type: 'enum', enum: GoalStatus, default: GoalStatus.ACTIVE })
+  status: GoalStatus;
+
+  @Column({ type: 'date', nullable: true })
+  deadline: Date;
+
+  @Column({ nullable: true })
+  icon: string;
+
+  @Column({ nullable: true })
+  color: string;
+
+  @ManyToOne(() => User, user => user.id, { onDelete: 'CASCADE' })
   user: User;
 
   @CreateDateColumn()
   createdAt: Date;
+
+  @UpdateDateColumn()
+  updatedAt: Date;
 }
