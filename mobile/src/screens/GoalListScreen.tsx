@@ -467,7 +467,7 @@ export const GoalListScreen = observer(() => {
               style={[styles.cancelButton, { marginTop: 16 }]}
               onPress={() => setHistoryModalVisible(false)}
             >
-              <Text style={styles.cancelText}>Close</Text>
+              <Text style={styles.cancelText}>Fechar</Text>
             </TouchableOpacity>
           </View>
         </View>
