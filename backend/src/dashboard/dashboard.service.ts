@@ -3,7 +3,7 @@ import { Transaction } from '../transaction/transaction.entity';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import { Cache } from 'cache-manager';
+import type { Cache } from 'cache-manager';
 
 @Injectable()
 export class DashboardService {
@@ -39,32 +39,36 @@ export class DashboardService {
 
   async calculateDashboard(userId: string, month?: string) {
     const currentMonth = month || new Date().toISOString().slice(0, 7);
-    const startDate = new Date(`${currentMonth}-01`);
-    const endDate = new Date(startDate.getFullYear(), startDate.getMonth() + 1, 0);
+    const [year, monthNum] = currentMonth.split('-').map(Number);
+    const startDate = new Date(Date.UTC(year, monthNum - 1, 1));
+    const endDate = new Date(Date.UTC(year, monthNum, 0, 23, 59, 59, 999));
 
     // Total Income
     const totalIncome = await this.transactionRepo
       .createQueryBuilder('t')
+      .leftJoin('t.user', 'user')
       .select('SUM(t.amount)', 'sum')
-      .where('t.userId = :userId AND t.type = :type', { userId, type: 'income' })
+      .where('user.id = :userId AND t.type = :type', { userId, type: 'income' })
       .andWhere('t.createdAt BETWEEN :startDate AND :endDate', { startDate, endDate })
       .getRawOne();
 
     // Total Expenses
     const totalExpenses = await this.transactionRepo
       .createQueryBuilder('t')
+      .leftJoin('t.user', 'user')
       .select('SUM(t.amount)', 'sum')
-      .where('t.userId = :userId AND t.type = :type', { userId, type: 'expense' })
+      .where('user.id = :userId AND t.type = :type', { userId, type: 'expense' })
       .andWhere('t.createdAt BETWEEN :startDate AND :endDate', { startDate, endDate })
       .getRawOne();
 
     // Ranking by categories
     const categoriesRanking = await this.transactionRepo
       .createQueryBuilder('t')
+      .leftJoin('t.user', 'user')
       .leftJoin('t.category', 'category')
       .select('category.name', 'name')
       .addSelect('SUM(t.amount)', 'total')
-      .where('t.userId = :userId', { userId })
+      .where('user.id = :userId', { userId })
       .andWhere('t.createdAt BETWEEN :startDate AND :endDate', { startDate, endDate })
       .groupBy('category.id')
       .addGroupBy('category.name')
