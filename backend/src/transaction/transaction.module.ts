@@ -5,8 +5,9 @@ import { TransactionService } from './transaction.service';
 import { TransactionController } from './transaction.controller';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Transaction])], // ← Aqui estamos registrando a entidade
+  imports: [TypeOrmModule.forFeature([Transaction])],
   controllers: [TransactionController],
   providers: [TransactionService],
+  exports: [TransactionService],
 })
 export class TransactionModule {}

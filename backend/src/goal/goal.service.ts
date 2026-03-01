@@ -3,12 +3,15 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Goal, GoalStatus } from './goal.entity';
 import { CreateGoalDto, UpdateGoalDto, AddContributionDto } from './dto';
+import { TransactionService } from '../transaction/transaction.service';
+import { TransactionType } from '../transaction/transaction.entity';
 
 @Injectable()
 export class GoalService {
   constructor(
     @InjectRepository(Goal)
     private readonly goalRepository: Repository<Goal>,
+    private readonly transactionService: TransactionService,
   ) {}
 
   async create(createGoalDto: CreateGoalDto, userId: string): Promise<Goal> {
@@ -81,6 +84,14 @@ export class GoalService {
     if (newAmount >= Number(goal.targetAmount)) {
       goal.status = GoalStatus.COMPLETED;
     }
+
+    // Create an expense transaction for this contribution
+    const transactionTitle = contributionDto.description || `Meta: ${goal.name}`;
+    await this.transactionService.create(userId, {
+      title: transactionTitle,
+      amount: contributionDto.amount,
+      type: TransactionType.EXPENSE,
+    });
 
     return this.goalRepository.save(goal);
   }

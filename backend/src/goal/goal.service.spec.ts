@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { GoalService } from './goal.service';
 import { Goal, GoalStatus } from './goal.entity';
 import { NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
+import { TransactionService } from '../transaction/transaction.service';
 
 describe('GoalService', () => {
   let service: GoalService;
@@ -38,6 +39,10 @@ describe('GoalService', () => {
     })),
   };
 
+  const mockTransactionService = {
+    create: jest.fn().mockResolvedValue({ id: 'tx-123' }),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -45,6 +50,10 @@ describe('GoalService', () => {
         {
           provide: getRepositoryToken(Goal),
           useValue: mockRepository,
+        },
+        {
+          provide: TransactionService,
+          useValue: mockTransactionService,
         },
       ],
     }).compile();
@@ -133,13 +142,36 @@ describe('GoalService', () => {
   });
 
   describe('addContribution', () => {
-    it('should add contribution to an active goal', async () => {
-      mockRepository.findOne.mockResolvedValue({ ...mockGoal, currentAmount: 1000 });
+    it('should add contribution to an active goal and create expense transaction', async () => {
+      mockRepository.findOne.mockResolvedValue({ ...mockGoal, currentAmount: 1000, name: 'Test Goal' });
       mockRepository.save.mockImplementation((goal) => Promise.resolve(goal));
 
       const result = await service.addContribution('goal-123', { amount: 500 }, mockUser.id);
 
       expect(result.currentAmount).toBe(1500);
+      expect(mockTransactionService.create).toHaveBeenCalledWith(
+        mockUser.id,
+        expect.objectContaining({
+          amount: 500,
+          type: 'expense',
+        })
+      );
+    });
+
+    it('should use custom description when provided', async () => {
+      mockRepository.findOne.mockResolvedValue({ ...mockGoal, currentAmount: 1000, name: 'Test Goal' });
+      mockRepository.save.mockImplementation((goal) => Promise.resolve(goal));
+
+      await service.addContribution('goal-123', { amount: 200, description: 'Monthly savings' }, mockUser.id);
+
+      expect(mockTransactionService.create).toHaveBeenCalledWith(
+        mockUser.id,
+        expect.objectContaining({
+          title: 'Monthly savings',
+          amount: 200,
+          type: 'expense',
+        })
+      );
     });
 
     it('should throw BadRequestException for non-active goals', async () => {

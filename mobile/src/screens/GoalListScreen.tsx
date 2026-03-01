@@ -26,6 +26,7 @@ export const GoalListScreen = observer(() => {
   const [deadline, setDeadline] = useState('');
   const [selectedColor, setSelectedColor] = useState(COLORS[0]);
   const [contributionAmount, setContributionAmount] = useState('');
+  const [contributionDescription, setContributionDescription] = useState('');
   const [filter, setFilter] = useState<'all' | 'active' | 'completed'>('all');
 
   useEffect(() => {
@@ -59,6 +60,7 @@ export const GoalListScreen = observer(() => {
   const openContributeModal = (goal: Goal) => {
     setSelectedGoal(goal);
     setContributionAmount('');
+    setContributionDescription('');
     setContributeModalVisible(true);
   };
 
@@ -94,8 +96,16 @@ export const GoalListScreen = observer(() => {
       return;
     }
 
-    await goalStore.addContribution(selectedGoal.id, amount);
+    await goalStore.addContribution(
+      selectedGoal.id,
+      amount,
+      contributionDescription.trim() || undefined
+    );
     setContributeModalVisible(false);
+    Alert.alert(
+      'Contribution Added',
+      `R$ ${amount.toFixed(2)} was added to "${selectedGoal.name}" and recorded as an expense.`
+    );
   };
 
   const handleDelete = (goal: Goal) => {
@@ -313,6 +323,17 @@ export const GoalListScreen = observer(() => {
               keyboardType="decimal-pad"
             />
 
+            <TextInput
+              style={styles.input}
+              placeholder="Description (optional)"
+              value={contributionDescription}
+              onChangeText={setContributionDescription}
+            />
+
+            <Text style={styles.contributeHint}>
+              This will create an expense transaction
+            </Text>
+
             <View style={styles.modalButtons}>
               <TouchableOpacity
                 style={styles.cancelButton}
@@ -419,6 +440,7 @@ const styles = StyleSheet.create({
   },
   modalTitle: { fontSize: 20, fontWeight: 'bold', marginBottom: 16 },
   contributeInfo: { color: '#666', marginBottom: 16 },
+  contributeHint: { color: '#888', fontSize: 12, fontStyle: 'italic', marginBottom: 16, textAlign: 'center' },
   input: {
     borderWidth: 1,
     borderColor: '#ddd',

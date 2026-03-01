@@ -1,5 +1,6 @@
 import { makeAutoObservable, runInAction} from "mobx";
 import { api, Goal, CreateGoalDto, GoalProgress } from '../services/api';
+import { dashboardStore } from './DashboardStore';
 
 class GoalStore {
   goals: Goal[] = [];
@@ -68,10 +69,12 @@ class GoalStore {
     }
   }
 
-  async addContribution(id: string, amount: number): Promise<Goal | null> {
+  async addContribution(id: string, amount: number, description?: string): Promise<Goal | null> {
     this.loading = true;
     try {
-      const res = await api.post<Goal>(`/goals/${id}/contribute`, { amount });
+      const payload: { amount: number; description?: string } = { amount };
+      if (description) payload.description = description;
+      const res = await api.post<Goal>(`/goals/${id}/contribute`, payload);
       runInAction(() => {
         const index = this.goals.findIndex(g => g.id === id);
         if (index !== -1) {
@@ -79,6 +82,8 @@ class GoalStore {
         }
         this.loading = false;
       });
+      // Refresh dashboard since contribution creates an expense transaction
+      dashboardStore.fetchDashboard();
       return res.data;
     } catch (err: any) {
       runInAction(() => {
